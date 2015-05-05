@@ -14,12 +14,14 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. */
 
-package main
+package dpkg
 
-import (
-	"./dpkg"
-)
+// #cgo LDFLAGS: /usr/lib/libdpkg.a
+// #cgo CFLAGS: -DLIBDPKG_VOLATILE_API
+// #include <dpkg/dpkg.h>
+import "C"
 
-func main() {
-	dpkg.Foo()
+/* This just handles a bringup of the dpkg internals. */
+func init() {
+	C.dpkg_program_init(C.CString("go-dpkg"))
 }
