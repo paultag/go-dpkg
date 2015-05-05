@@ -31,12 +31,12 @@ import (
 	"unsafe"
 )
 
+/*
+ */
 func (array *C.struct_pkg_array) toSlice() (ret []*C.struct_pkginfo) {
 	width := unsafe.Sizeof(&C.struct_pkginfo{})
-
 	base_pointer := unsafe.Pointer(array.pkgs)
 	current_address := uintptr(base_pointer)
-
 	for i := 0; i < int(array.n_pkgs); i++ {
 		pkg_pointer := (**C.struct_pkginfo)(unsafe.Pointer(current_address))
 		current_address += width
@@ -47,6 +47,34 @@ func (array *C.struct_pkg_array) toSlice() (ret []*C.struct_pkginfo) {
 	return
 }
 
+type Package struct {
+	Want     rune
+	EFlag    rune
+	Status   rune
+	Priority string
+	Section  string
+	Name     string
+
+	/* C internals */
+	cPackage *C.struct_pkginfo
+}
+
+func (pkg *C.struct_pkginfo) toPackage() *Package {
+	return &Package{
+		Name:     C.GoString(C.pkg_name(pkg, C.pnaw_nonambig)),
+		Want:     rune(C.pkg_abbrev_want(pkg)),
+		Status:   rune(C.pkg_abbrev_status(pkg)),
+		EFlag:    rune(C.pkg_abbrev_eflag(pkg)),
+		Priority: C.GoString(C.pkg_priority_name(pkg)),
+		Section:  C.GoString(pkg.section),
+
+		/* */
+		cPackage: pkg,
+	}
+}
+
+/*
+ */
 func Foo() {
 	C.modstatdb_open(C.msdbrw_readonly)
 
@@ -62,15 +90,23 @@ func Foo() {
 			continue
 		}
 
-		fmt.Printf("%c%c %c %s %s %s\n",
-			C.pkg_abbrev_want(pkg),
-			C.pkg_abbrev_status(pkg),
-			C.pkg_abbrev_eflag(pkg),
-			C.GoString(C.pkg_name(pkg, C.pnaw_nonambig)),
-			C.GoString(C.versiondescribe(
-				&pkg.installed.version,
-				C.vdew_nonambig,
-			)),
-			C.GoString(C.dpkg_arch_describe(pkg.installed.arch)))
+		goPkg := pkg.toPackage()
+		fmt.Printf("%c%c %s %s\n",
+			goPkg.Want,
+			goPkg.Status,
+			goPkg.Name,
+			goPkg.Section,
+		)
+
+		// fmt.Printf("%c%c %c %s %s %s\n",
+		// 	C.pkg_abbrev_want(pkg),
+		// 	C.pkg_abbrev_status(pkg),
+		// 	C.pkg_abbrev_eflag(pkg),
+		// 	C.GoString(C.pkg_name(pkg, C.pnaw_nonambig)),
+		// 	C.GoString(C.versiondescribe(
+		// 		&pkg.installed.version,
+		// 		C.vdew_nonambig,
+		// 	)),
+		// 	C.GoString(C.dpkg_arch_describe(pkg.installed.arch)))
 	}
 }
