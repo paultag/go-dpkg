@@ -18,8 +18,16 @@ package main
 
 import (
 	"./dpkg"
+	"fmt"
 )
 
 func main() {
-	dpkg.Foo()
+	relations := dpkg.ParseDepends("foo, bar | baz")
+
+	for _, relation := range relations {
+		fmt.Printf(".\n")
+		for _, deppossi := range relation.Possibilities {
+			fmt.Printf("  %s\n", deppossi.Name)
+		}
+	}
 }

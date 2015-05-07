@@ -24,89 +24,103 @@ package dpkg
 // #include <dpkg/pkg-array.h>
 // #include <dpkg/pkg-spec.h>
 // #include <dpkg/pkg-show.h>
+// #include <dpkg/parsedump.h>
+// #include <malloc.h>
+//
+// void _f_dependency(struct pkginfo *pkg, struct pkgbin *pkgbin,
+//                    struct parsedb_state *ps,
+//                    const char *value, const struct fieldinfo *fip) {
+//     return f_dependency(pkg, pkgbin, ps, value, fip);
+// }
 import "C"
 
 import (
-	"fmt"
 	"unsafe"
 )
 
-/*
- */
-func (array *C.struct_pkg_array) toSlice() (ret []*C.struct_pkginfo) {
-	width := unsafe.Sizeof(&C.struct_pkginfo{})
-	base_pointer := unsafe.Pointer(array.pkgs)
-	current_address := uintptr(base_pointer)
-	for i := 0; i < int(array.n_pkgs); i++ {
-		pkg_pointer := (**C.struct_pkginfo)(unsafe.Pointer(current_address))
-		current_address += width
-		pkg := *pkg_pointer
-		ret = append(ret, pkg)
+type Dependency struct {
+	Name string
+}
+
+type Relation struct {
+	Possibilities []*Dependency
+}
+
+func (dependency *C.struct_dependency) toRelation() *Relation {
+	relation := Relation{
+		Possibilities: []*Dependency{},
 	}
 
-	return
-}
-
-type Package struct {
-	Want     rune
-	EFlag    rune
-	Status   rune
-	Priority string
-	Section  string
-	Name     string
-
-	/* C internals */
-	cPackage *C.struct_pkginfo
-}
-
-func (pkg *C.struct_pkginfo) toPackage() *Package {
-	return &Package{
-		Name:     C.GoString(C.pkg_name(pkg, C.pnaw_nonambig)),
-		Want:     rune(C.pkg_abbrev_want(pkg)),
-		Status:   rune(C.pkg_abbrev_status(pkg)),
-		EFlag:    rune(C.pkg_abbrev_eflag(pkg)),
-		Priority: C.GoString(C.pkg_priority_name(pkg)),
-		Section:  C.GoString(pkg.section),
-
-		/* */
-		cPackage: pkg,
+	dep := dependency.list
+	for {
+		relation.Possibilities = append(
+			relation.Possibilities,
+			dep.toDependency(),
+		)
+		dep = dep.next
+		if dep == nil {
+			break
+		}
 	}
+
+	return &relation
 }
 
-/*
- */
-func Foo() {
-	C.modstatdb_open(C.msdbrw_readonly)
+func (dependency *C.struct_dependency) toRelations() []*Relation {
+	relations := []*Relation{}
 
-	array := C.struct_pkg_array{}
-	C.pkg_array_init_from_db(&array)
-	C.pkg_array_sort(
-		&array,
-		(*C.pkg_sorter_func)(C.pkg_sorter_by_nonambig_name_arch),
-	)
-
-	for _, pkg := range array.toSlice() {
-		if pkg.status == C.PKG_STAT_NOTINSTALLED {
-			continue
+	for {
+		if dependency == nil {
+			break
 		}
 
-		goPkg := pkg.toPackage()
-		fmt.Printf("%c%c %s %s\n",
-			goPkg.Want,
-			goPkg.Status,
-			goPkg.Name,
-			goPkg.Section,
-		)
-
-		// fmt.Printf("%c%c %c %s %s %s\n",
-		// 	C.pkg_abbrev_want(pkg),
-		// 	C.pkg_abbrev_status(pkg),
-		// 	C.pkg_abbrev_eflag(pkg),
-		// 	C.GoString(C.pkg_name(pkg, C.pnaw_nonambig)),
-		// 	C.GoString(C.versiondescribe(
-		// 		&pkg.installed.version,
-		// 		C.vdew_nonambig,
-		// 	)),
-		// 	C.GoString(C.dpkg_arch_describe(pkg.installed.arch)))
+		relations = append(relations, dependency.toRelation())
+		dependency = dependency.next
 	}
+	return relations
+}
+
+func (dependency *C.struct_deppossi) toDependency() *Dependency {
+	return &Dependency{
+		Name: C.GoString(dependency.ed.name),
+	}
+}
+
+func ParseDepends(depends string) []*Relation {
+	pkg := C.struct_pkginfo{}
+	pkgBin := C.struct_pkgbin{}
+
+	fakeName := C.CString("<go-dpkg")
+	defer C.free(unsafe.Pointer(fakeName))
+
+	name := C.CString("Depends") /* Don't change without changing namelen */
+	defer C.free(unsafe.Pointer(name))
+
+	cDepends := C.CString(depends + "\n")
+	defer C.free(unsafe.Pointer(cDepends))
+
+	ps := C.struct_parsedb_state{
+		_type:    0,
+		flags:    0,
+		pkg:      &pkg,
+		pkgbin:   &pkgBin,
+		data:     nil,
+		dataptr:  nil,
+		endptr:   nil,
+		filename: fakeName,
+		fd:       -1,
+		lno:      -1,
+	}
+
+	fi := C.struct_fieldinfo{
+		name:    name,
+		namelen: 7,
+		rcall:   &C.f_dependency,
+		wcall:   nil, /* Hah. This'll backfire some day */
+		integer: C.dep_depends,
+	}
+
+	C._f_dependency(&pkg, &pkgBin, &ps, cDepends, &fi)
+
+	return pkgBin.depends.toRelations()
 }
