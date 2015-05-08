@@ -18,11 +18,6 @@ package dpkg
 
 // #cgo LDFLAGS: /usr/lib/libdpkg.a
 // #cgo CFLAGS: -DLIBDPKG_VOLATILE_API
-// #include <dpkg/version.h>
-// #include <dpkg/dpkg-db.h>
-// #include <dpkg/dpkg-db.h>
-// #include <dpkg/pkg-array.h>
-// #include <dpkg/pkg-spec.h>
 // #include <dpkg/pkg-show.h>
 // #include <dpkg/parsedump.h>
 // #include <malloc.h>
@@ -41,6 +36,8 @@ import (
 	"unsafe"
 )
 
+/*
+ */
 type Dependency struct {
 	Name         string
 	Arch         *Arch
@@ -48,11 +45,15 @@ type Dependency struct {
 	ImplicitArch bool
 }
 
+/*
+ */
 type Relation struct {
 	Possibilities []*Dependency
 	Type          string
 }
 
+/*
+ */
 func (dependency *C.struct_dependency) toRelation() *Relation {
 	relation := Relation{
 		Possibilities: []*Dependency{},
@@ -74,6 +75,8 @@ func (dependency *C.struct_dependency) toRelation() *Relation {
 	return &relation
 }
 
+/*
+ */
 func (dependency *C.struct_dependency) toRelations() []*Relation {
 	relations := []*Relation{}
 
@@ -88,6 +91,8 @@ func (dependency *C.struct_dependency) toRelations() []*Relation {
 	return relations
 }
 
+/*
+ */
 func (dependency *C.struct_deppossi) toDependency() *Dependency {
 	arch := (*Arch)(nil)
 
@@ -103,6 +108,8 @@ func (dependency *C.struct_deppossi) toDependency() *Dependency {
 	}
 }
 
+/*
+ */
 func ParseDepends(depends string) []*Relation {
 	pkg := C.struct_pkginfo{}
 	pkgBin := C.struct_pkgbin{}

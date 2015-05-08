@@ -26,12 +26,16 @@ import (
 	"fmt"
 )
 
+/*
+ */
 type Version struct {
 	Epoch    int
 	Version  string
 	Revision string
 }
 
+/*
+ */
 func ParseVersion(str string) (ret *Version, err error) {
 	version := C.struct_dpkg_version{}
 	derr := C.struct_dpkg_error{}
