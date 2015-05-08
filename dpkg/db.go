@@ -41,11 +41,15 @@ func ParseVersion(str string) (ret *Version, err error) {
 		return nil, fmt.Errorf("Bad version syntax: %s", C.GoString(derr.str))
 	}
 
+	return version.toVersion(), nil
+}
+
+func (version *C.struct_dpkg_version) toVersion() *Version {
 	return &Version{
 		Epoch:    int(version.epoch),
 		Version:  C.GoString(version.version),
 		Revision: C.GoString(version.revision),
-	}, nil
+	}
 }
 
 func (this *Version) toCStruct() *C.struct_dpkg_version {

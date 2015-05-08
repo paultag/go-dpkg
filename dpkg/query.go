@@ -38,17 +38,32 @@ import (
 	"unsafe"
 )
 
-type Dependency struct {
+type Arch struct {
 	Name string
+}
+
+func (arch *C.struct_dpkg_arch) toArch() *Arch {
+	return &Arch{
+		Name: C.GoString(arch.name),
+	}
+}
+
+type Dependency struct {
+	Name         string
+	Arch         *Arch
+	Version      *Version
+	ImplicitArch bool
 }
 
 type Relation struct {
 	Possibilities []*Dependency
+	Type          string
 }
 
 func (dependency *C.struct_dependency) toRelation() *Relation {
 	relation := Relation{
 		Possibilities: []*Dependency{},
+		Type:          "",
 	}
 
 	dep := dependency.list
@@ -81,8 +96,17 @@ func (dependency *C.struct_dependency) toRelations() []*Relation {
 }
 
 func (dependency *C.struct_deppossi) toDependency() *Dependency {
+
+	arch := (*Arch)(nil)
+	if dependency.arch != nil {
+		arch = dependency.arch.toArch()
+	}
+
 	return &Dependency{
-		Name: C.GoString(dependency.ed.name),
+		Name:         C.GoString(dependency.ed.name),
+		Version:      dependency.version.toVersion(),
+		ImplicitArch: bool(dependency.arch_is_implicit),
+		Arch:         arch,
 	}
 }
 
