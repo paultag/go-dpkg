@@ -51,20 +51,3 @@ func (version *C.struct_dpkg_version) toVersion() *Version {
 		Revision: C.GoString(version.revision),
 	}
 }
-
-func (this *Version) toCStruct() *C.struct_dpkg_version {
-	return &C.struct_dpkg_version{
-		epoch:    C.uint(this.Epoch),
-		version:  C.CString(this.Version),
-		revision: C.CString(this.Revision),
-	}
-}
-
-func (this *Version) Describe() string {
-	version := this.toCStruct()
-	explain := C.versiondescribe(
-		version,
-		C.vdew_nonambig,
-	)
-	return C.GoString(explain)
-}

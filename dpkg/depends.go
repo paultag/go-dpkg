@@ -38,16 +38,6 @@ import (
 	"unsafe"
 )
 
-type Arch struct {
-	Name string
-}
-
-func (arch *C.struct_dpkg_arch) toArch() *Arch {
-	return &Arch{
-		Name: C.GoString(arch.name),
-	}
-}
-
 type Dependency struct {
 	Name         string
 	Arch         *Arch
