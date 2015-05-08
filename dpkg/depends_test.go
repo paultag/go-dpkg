@@ -24,20 +24,25 @@ import (
 
 /* */
 func TestSimpleDependency(t *testing.T) {
-	dependency := dpkg.ParseDepends("foo")
-	// ok(t, err) /* in the future when ParseDepends returns `err error` */
+	dependency, err := dpkg.ParseDepends("foo")
+	ok(t, err)
 	equals(t, 1, len(dependency))
 }
 
 /* */
 func TestDeppossiDependency(t *testing.T) {
-	dependency := dpkg.ParseDepends("foo, bar | baz | quix")
-	// ok(t, err) /* in the future when ParseDepends returns `err error` */
+	dependency, err := dpkg.ParseDepends("foo, bar | baz | quix")
+	ok(t, err)
 	equals(t, 2, len(dependency))
 	equals(t, 3, len(dependency[1].Possibilities))
 }
 
 /* */
 func TestInvalidDependency(t *testing.T) {
-	dpkg.ParseDepends("etc foo")
+	dependency, err := dpkg.ParseDepends("etc foo")
+
+	if err == nil {
+		t.FailNow()
+	}
+	assert(t, dependency == nil, "Dependency isn't nil.")
 }

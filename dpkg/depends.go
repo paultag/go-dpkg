@@ -51,6 +51,7 @@ package dpkg
 import "C"
 
 import (
+	"errors"
 	"unsafe"
 )
 
@@ -128,7 +129,7 @@ func (dependency *C.struct_deppossi) toDependency() *Dependency {
 
 /*
  */
-func ParseDepends(depends string) []*Relation {
+func ParseDepends(depends string) ([]*Relation, error) {
 	pkg := C.struct_pkginfo{}
 	pkgBin := C.struct_pkgbin{}
 
@@ -144,7 +145,7 @@ func ParseDepends(depends string) []*Relation {
 	ps := C.struct_parsedb_state{
 		_type:    0,
 		flags:    0,
-		pkg:      &pkg,
+		pkg:      nil, //&pkg, /* XXX: OUCH */
 		pkgbin:   &pkgBin,
 		data:     nil,
 		dataptr:  nil,
@@ -163,7 +164,12 @@ func ParseDepends(depends string) []*Relation {
 	}
 
 	err := C.bool(false)
+
 	C.parse_dependency(&err, &pkg, &pkgBin, &ps, cDepends, &fi)
 
-	return pkgBin.depends.toRelations()
+	if bool(err) == true {
+		return nil, errors.New("ohshit")
+	}
+
+	return pkgBin.depends.toRelations(), nil
 }
