@@ -27,6 +27,9 @@ package dpkg
 // #include <dpkg/parsedump.h>
 // #include <malloc.h>
 //
+// /* Hack to work around issues in how Golang looks at typedef.
+//  * -- see https://github.com/golang/go/issues/7270#issuecomment-99660549
+//  * for more. */
 // void _f_dependency(struct pkginfo *pkg, struct pkgbin *pkgbin,
 //                    struct parsedb_state *ps,
 //                    const char *value, const struct fieldinfo *fip) {
