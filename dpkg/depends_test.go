@@ -44,5 +44,20 @@ func TestInvalidDependency(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+
 	assert(t, dependency == nil, "Dependency isn't nil.")
+}
+
+/* */
+func TestVersionDependency(t *testing.T) {
+	_, err := dpkg.ParseDepends("libc6 (>= 2.2.1), exim | mail-transport-agent")
+	ok(t, err)
+}
+
+/* */
+func TestArchDependency(t *testing.T) {
+	t.Skip()
+	/* This is broken */
+	_, err := dpkg.ParseDepends("foo [i386]")
+	ok(t, err)
 }

@@ -38,8 +38,8 @@ package dpkg
 // ) {
 //     jmp_buf jbuf;
 //     if (setjmp(jbuf)) {
-//         pop_error_context(ehflag_normaltidy); /* EVERYTHING IS NORMAL */
 //         *error = true;
+//         pop_error_context(ehflag_bombout);
 //         return;
 //     }
 //     *error = false;
@@ -143,8 +143,8 @@ func ParseDepends(depends string) ([]*Relation, error) {
 	defer C.free(unsafe.Pointer(cDepends))
 
 	ps := C.struct_parsedb_state{
-		_type:    0,
-		flags:    0,
+		_type:    C.pdb_file_control,
+		flags:    C.pdb_single_stanza,
 		pkg:      nil, //&pkg, /* XXX: OUCH */
 		pkgbin:   &pkgBin,
 		data:     nil,
@@ -164,11 +164,10 @@ func ParseDepends(depends string) ([]*Relation, error) {
 	}
 
 	err := C.bool(false)
-
 	C.parse_dependency(&err, &pkg, &pkgBin, &ps, cDepends, &fi)
 
-	if bool(err) == true {
-		return nil, errors.New("ohshit")
+	if bool(err) {
+		return nil, errors.New("Ohsnap")
 	}
 
 	return pkgBin.depends.toRelations(), nil
