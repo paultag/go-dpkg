@@ -89,8 +89,8 @@ func (dependency *C.struct_dependency) toRelations() []*Relation {
 }
 
 func (dependency *C.struct_deppossi) toDependency() *Dependency {
-
 	arch := (*Arch)(nil)
+
 	if dependency.arch != nil {
 		arch = dependency.arch.toArch()
 	}
