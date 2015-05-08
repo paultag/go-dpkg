@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	relations := dpkg.ParseDepends("foo, bar | baz")
+	relations := dpkg.ParseDepends("foo bar")
 
 	for _, relation := range relations {
 		fmt.Printf(".\n")

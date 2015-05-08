@@ -20,16 +20,34 @@ package dpkg
 // #cgo CFLAGS: -DLIBDPKG_VOLATILE_API
 // #include <dpkg/pkg-show.h>
 // #include <dpkg/parsedump.h>
+// #include <dpkg/ehandle.h>
 // #include <malloc.h>
+// #include <stdlib.h>
 //
-// /* Hack to work around issues in how Golang looks at typedef.
-//  * -- see https://github.com/golang/go/issues/7270#issuecomment-99660549
-//  * for more. */
-// void _f_dependency(struct pkginfo *pkg, struct pkgbin *pkgbin,
-//                    struct parsedb_state *ps,
-//                    const char *value, const struct fieldinfo *fip) {
-//     return f_dependency(pkg, pkgbin, ps, value, fip);
+// void go_dpkg_error_hider(const char *emsg, const void *data) {
+//     return;
 // }
+//
+// void parse_dependency(
+//     bool *error,
+//     struct pkginfo *pkg,
+//     struct pkgbin *pkgbin,
+//     struct parsedb_state *ps,
+//     const char *value,
+//     const struct fieldinfo *fip
+// ) {
+//     jmp_buf jbuf;
+//     if (setjmp(jbuf)) {
+//         pop_error_context(ehflag_normaltidy); /* EVERYTHING IS NORMAL */
+//         *error = true;
+//         return;
+//     }
+//     *error = false;
+//     push_error_context_jump(&jbuf, go_dpkg_error_hider, NULL);
+//     f_dependency(pkg, pkgbin, ps, value, fip);
+//     pop_error_context(ehflag_normaltidy);
+// }
+//
 import "C"
 
 import (
@@ -114,7 +132,7 @@ func ParseDepends(depends string) []*Relation {
 	pkg := C.struct_pkginfo{}
 	pkgBin := C.struct_pkgbin{}
 
-	fakeName := C.CString("<go-dpkg")
+	fakeName := C.CString("<go-dpkg>")
 	defer C.free(unsafe.Pointer(fakeName))
 
 	name := C.CString("Depends") /* Don't change without changing namelen */
@@ -144,7 +162,8 @@ func ParseDepends(depends string) []*Relation {
 		integer: C.dep_depends,
 	}
 
-	C._f_dependency(&pkg, &pkgBin, &ps, cDepends, &fi)
+	err := C.bool(false)
+	C.parse_dependency(&err, &pkg, &pkgBin, &ps, cDepends, &fi)
 
 	return pkgBin.depends.toRelations()
 }

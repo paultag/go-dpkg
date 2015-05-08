@@ -36,3 +36,8 @@ func TestDeppossiDependency(t *testing.T) {
 	equals(t, 2, len(dependency))
 	equals(t, 3, len(dependency[1].Possibilities))
 }
+
+/* */
+func TestInvalidDependency(t *testing.T) {
+	dpkg.ParseDepends("etc foo")
+}
